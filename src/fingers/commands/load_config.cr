@@ -74,6 +74,10 @@ class Fingers::Commands::LoadConfig < Cling::Command
         config.show_copied_notification = value
       when "enabled_builtin_patterns"
         config.enabled_builtin_patterns = value
+      when "toggle_multi_mode_key"
+        config.toggle_multi_mode_key = value
+      when "fzf_key"
+        config.fzf_key = value
       end
 
       if option.match(/^pattern/) && !value.empty?
@@ -137,7 +141,7 @@ class Fingers::Commands::LoadConfig < Cling::Command
       fingers_mode_bind("M-#{char}", "hint:#{char}:alt")
     end
 
-    fingers_mode_bind("Space", "fzf")
+    fingers_mode_bind(config.toggle_multi_mode_key, "toggle-multi-mode")
     fingers_mode_bind("C-c", "exit")
     fingers_mode_bind("q", "exit")
     fingers_mode_bind("Escape", "exit")
@@ -145,7 +149,7 @@ class Fingers::Commands::LoadConfig < Cling::Command
     fingers_mode_bind("?", "toggle-help")
 
     fingers_mode_bind("Enter", "noop")
-    fingers_mode_bind("Tab", "toggle-multi-mode")
+    fingers_mode_bind(config.fzf_key, "fzf")
 
     fingers_mode_bind("Any", "noop")
   end
