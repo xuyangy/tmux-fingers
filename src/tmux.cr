@@ -134,8 +134,14 @@ class Tmux
     @version = Tmux.tmux_version_to_semver(version_string)
   end
 
-  def list_panes(filters = "") : Array(Pane)
-    args = ["list-panes", "-a", "-F", PANE_FORMAT]
+  def list_panes(filters = "", target = nil) : Array(Pane)
+    args = ["list-panes", "-F", PANE_FORMAT]
+
+    if target.nil?
+      args << "-a"
+    else
+      args.concat(["-t", target])
+    end
 
     if !filters.empty?
       args.concat(["-f", filters])
@@ -222,10 +228,10 @@ class Tmux
     exec(["show", "-gqv", name].join(' ')).chomp
   end
 
-  def set_buffer(value)
+  def set_buffer(value, use_system_clipboard = true)
     return unless value
 
-    if @version >= Tmux.tmux_version_to_semver("3.2")
+    if @version >= Tmux.tmux_version_to_semver("3.2") && use_system_clipboard
       args = ["load-buffer", "-w", "-"]
     else
       args = ["load-buffer", "-"]

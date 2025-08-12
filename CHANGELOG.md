@@ -1,3 +1,15 @@
+## 2.5.1 - 04 Aug 2025
+
+* Use pane_current_path with presence when chdir ( thanks @na0x2c6 ! )
+
+## 2.5.0 - 17 Jul 2025
+
+* Added new @fingers-use-system-clipboard option ( thanks @purajit ! )
+
+## 2.4.1 - 18 May 2025
+
+* Fix active pane restore when passing a format as target.
+
 ## 2.4.0 - 04 Apr 2025
 
 * Add support to tmux target-pane tokens, which allows to target other panes

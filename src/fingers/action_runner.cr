@@ -19,7 +19,7 @@ module Fingers
     end
 
     def run
-      tmux.set_buffer(match)
+      tmux.set_buffer(match, Fingers.config.use_system_clipboard)
 
       return if final_shell_command.nil? || final_shell_command.not_nil!.empty?
 
@@ -31,7 +31,7 @@ module Fingers
         input: :pipe,
         output: :pipe,
         error: File.open(::Fingers::Dirs::ROOT / "action-stderr", "a"),
-        chdir: original_pane.pane_current_path,
+        chdir: original_pane.pane_current_path.presence,
         env: action_env
       )
 
@@ -116,6 +116,8 @@ module Fingers
     end
 
     def system_copy_command
+      return nil unless Fingers.config.use_system_clipboard
+
       @system_copy_command ||= if program_exists?("pbcopy")
                                  if program_exists?("reattach-to-user-namespace")
                                    "reattach-to-user-namespace"

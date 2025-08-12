@@ -94,11 +94,14 @@ NOTE: for changes to take effect, you'll need to source again your `.tmux.conf` 
 * [@fingers-keyboard-layout](#fingers-keyboard-layout)
 * [@fingers-show-copied-notification](#fingers-show-copied-notification)
 * [@fingers-enabled-builtin-patterns](#fingers-enabled-builtin-patterns)
+* [@fingers-use-system-clipboard](#fingers-use-system-clipboard)
 
 Recipes:
 
 * [Start tmux-fingers without prefix](#start-tmux-fingers-without-prefix)
 * [Using only specific patterns](#using-only-specific-patterns)
+* [Using arbitrary commands](#using-arbitrary-commands)
+* [Target adjacent panes](#target-adjacent-panes)
 
 ## @fingers-key
 
@@ -186,7 +189,7 @@ Same as [@fingers-main-action](#fingers-main-action) but only called when match 
 
 ## @fingers-hint-style
 
-`default: "fg=green,bold`
+`default: "fg=green,bold"`
 
 With this option you can define the styles for the letter hints.
 
@@ -275,7 +278,7 @@ A list of comma separated pattern names. Built-in patterns are the following:
 | url               | urls (supported protocols: http/https/git/ssh/file)       | `https://asdf.com`                             |
 | path              | file paths                                                | `path/to/file`                                 |
 | hex               | hexidecimal numbers                                       | `0x00FF`                                       |
-| kubernetes        | kubernetes identifer                                      | `deployment.apps/zookeeper`                    |
+| kubernetes        | kubernetes identifier                                     | `deployment.apps/zookeeper`                    |
 | git-status        | will match file paths in the output of git status         | `modified: ./path/to/file`                     |
 | git-status-branch | will match branch name in the output of git status        | `Your branch is up to date withname-of-branch` |
 | diff              | will match paths in diff output                           | `+++ a/path/to/file`                           |
@@ -304,6 +307,13 @@ Options:
 ```
 
 Check some examples in the [Recipes](#Recipes) section below.
+
+## @fingers-use-system-clipboard
+
+`default: 1`
+
+Whether to use the system clipboard when copying matches. If set to `0`,
+tmux-fingers will only copy matches to the tmux buffer.
 
 # Recipes
 
