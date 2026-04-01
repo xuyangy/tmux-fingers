@@ -3,10 +3,6 @@ class TmuxStylePrinter
   class InvalidFormat < Exception
   end
 
-  abstract class Shell
-    abstract def exec(cmd)
-  end
-
   STYLE_SEPARATOR = /[ ,]+/
 
   COLOR_MAP = {
@@ -20,32 +16,23 @@ class TmuxStylePrinter
     white:   7,
   }
 
-  LAYER_MAP = {
-    bg: "setab",
-    fg: "setaf",
+  LAYER_BASE = {
+    bg: 40,
+    fg: 30,
   }
 
   STYLE_MAP = {
-    bright:     "bold",
-    bold:       "bold",
-    dim:        "dim",
-    underscore: "smul",
-    reverse:    "rev",
-    italics:    "sitm",
+    bright:     1,
+    bold:       1,
+    dim:        2,
+    underscore: 4,
+    reverse:    7,
+    italics:    3,
   }
 
-  class ShellExec < Shell
-    def exec(cmd)
-      `#{cmd}`.chomp
-    end
-  end
-
-  @shell : Shell
   @applied_styles : Hash(String, String)
-  @reset_sequence : String | Nil
 
-  def initialize(shell = ShellExec.new)
-    @shell = shell
+  def initialize
     @applied_styles = {} of String => String
   end
 
@@ -78,18 +65,25 @@ class TmuxStylePrinter
 
     layer = match["layer"]
     color = match["color"]
-    color_code = match["color_code"] if match["color_code"]?
+    color_code = match["color_code"]? ? match["color_code"].to_i : nil
 
     if match["color"] == "default"
       @applied_styles.delete(layer)
       return reset_to_applied_styles!
     end
 
-    color_to_apply = color_code || COLOR_MAP[color]?
+    color_index = color_code || COLOR_MAP[color]?
 
-    raise InvalidFormat.new("Invalid color definition: #{style}") if color_to_apply.nil?
+    raise InvalidFormat.new("Invalid color definition: #{style}") if color_index.nil?
 
-    result = shell.exec("tput #{LAYER_MAP[layer]} #{color_to_apply}")
+    color_index = color_index.to_i
+
+    result = if color_index < 8
+               "\033[#{LAYER_BASE[layer] + color_index}m"
+             else
+               code = layer == "fg" ? 38 : 48
+               "\033[#{code};5;#{color_index}m"
+             end
 
     @applied_styles[layer] = result
 
@@ -104,11 +98,11 @@ class TmuxStylePrinter
     should_remove_style = match["remove"]? && match["remove"] == "no"
     style = match["style"]
 
-    style_to_apply = STYLE_MAP[style]?
+    style_code = STYLE_MAP[style]?
 
-    raise InvalidFormat.new("Invalid style definition: #{style}") if style_to_apply.nil?
+    raise InvalidFormat.new("Invalid style definition: #{style}") if style_code.nil?
 
-    result = style == "dim" ? "\033[2m" : shell.exec("tput #{STYLE_MAP[style]}")
+    result = "\033[#{style_code}m"
 
     if should_remove_style
       @applied_styles.delete(style)
@@ -125,10 +119,6 @@ class TmuxStylePrinter
   end
 
   private def reset_sequence
-    @reset_sequence ||= shell.exec("tput sgr0").chomp
-  end
-
-  private def shell
-    @shell
+    "\033[0m"
   end
 end
