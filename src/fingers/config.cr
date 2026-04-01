@@ -25,6 +25,8 @@ module Fingers
     property show_copied_notification : String
     property enabled_builtin_patterns : String
     property enable_bindings : Bool
+    property toggle_multi_mode_key : String
+    property fzf_key : String
 
     FORMAT_PRINTER = TmuxStylePrinter.new
 
@@ -86,6 +88,8 @@ module Fingers
       @show_copied_notification = "0",
       @enabled_builtin_patterns = "all",
       @enable_bindings = true,
+      @toggle_multi_mode_key = "Space",
+      @fzf_key = "Tab",
       @benchmark_mode = "0"
     )
     end
