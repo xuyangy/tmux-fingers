@@ -134,7 +134,7 @@ module Fingers
       end
 
       formatter.format(
-        hint: hint,
+        hint: hint[state.input.size..],
         highlight: text,
         selected: state.selected_hints.includes?(hint),
         offset: relative_capture_offset
