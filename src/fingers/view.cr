@@ -49,6 +49,8 @@ module Fingers
       when "toggle-help"
       when "toggle-multi-mode"
         process_multimode
+      when "join-multi-mode"
+        join_multimode
       when "fzf"
         # soon
       end
@@ -78,14 +80,23 @@ module Fingers
     private def process_multimode
       return if mode == "jump"
 
-      prev_state = state.multi_mode
-      state.multi_mode = !state.multi_mode
-      current_state = state.multi_mode
-
-      if prev_state == true && current_state == false
-        state.result = state.multi_matches.join(' ')
-        request_exit!
+      if state.multi_mode
+        finish_multimode(" ")
+      else
+        state.multi_mode = true
       end
+    end
+
+    # Exits multi mode with the selected matches concatenated without a
+    # separator, e.g. to rebuild a path that the program split across rows.
+    private def join_multimode
+      finish_multimode("") if state.multi_mode
+    end
+
+    private def finish_multimode(separator : String)
+      state.multi_mode = false
+      state.result = state.multi_matches.join(separator)
+      request_exit!
     end
 
     private getter :output, :hinter, :original_pane, :state, :tmux, :mode

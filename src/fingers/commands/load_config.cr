@@ -156,7 +156,7 @@ class Fingers::Commands::LoadConfig < Cling::Command
 
     fingers_mode_bind("?", "toggle-help")
 
-    fingers_mode_bind("Enter", "noop")
+    fingers_mode_bind("Enter", "join-multi-mode")
     fingers_mode_bind(config.fzf_key, "fzf")
 
     fingers_mode_bind("Any", "noop")

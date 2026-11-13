@@ -29,7 +29,8 @@ While in **[fingers]** mode, you can use the following shortcuts:
 * <kbd>CTRL</kbd> + <kbd>a</kbd>-<kbd>z</kbd>: copies selected match to the clipboard and triggers [@fingers-ctrl-action](#fingers-ctrl-action). By default it triggers `:open:` action, which is useful for opening links in the browser for example.
 * <kbd>SHIFT</kbd> + <kbd>a</kbd>-<kbd>z</kbd>: copies selected match to the clipboard and triggers [@fingers-shift-action](#fingers-shift-action). By default it triggers `:paste:` action, which automatically pastes selected matches.
 * <kbd>ALT</kbd> + <kbd>a</kbd>-<kbd>z</kbd>: copies selected match to the clipboard and triggers [@fingers-alt-action](#fingers-alt-action). There is no default, configurable by the user.
-* <kbd>TAB</kbd>: toggle multi mode. First press enters multi mode, which allows to select multiple matches. Second press will exit with the selected matches copied to the clipboard.
+* <kbd>SPACE</kbd> (configurable with [@fingers-toggle-multi-mode-key](#fingers-toggle-multi-mode-key)): toggle multi mode. First press enters multi mode, which allows to select multiple matches. Second press will exit with the selected matches, separated by spaces, copied to the clipboard.
+* <kbd>ENTER</kbd>: in multi mode, exit with the selected matches joined without separator, in the order they were selected. Useful to rebuild a path that a program split across two rows: select both halves, then press <kbd>ENTER</kbd>.
 * <kbd>q</kbd>, <kbd>ESC</kbd> or <kbd>CTRL</kbd> + <kbd>c</kbd>: exit **[fingers]** mode
 
 # Requirements
@@ -96,6 +97,7 @@ NOTE: for changes to take effect, you'll need to source again your `.tmux.conf` 
 * [@fingers-enabled-builtin-patterns](#fingers-enabled-builtin-patterns)
 * [@fingers-use-system-clipboard](#fingers-use-system-clipboard)
 * [@fingers-enable-bindings](#fingers-enable-bindings)
+* [@fingers-toggle-multi-mode-key](#fingers-toggle-multi-mode-key)
 
 Recipes:
 
@@ -300,6 +302,25 @@ By default, tmux-fingers will bind to `prefix` + `@fingers-key` and `prefix` +
 other parts of your configuration.
 
 Check [recipes](#Recipes) for alternative ways to set up bindings.
+
+## @fingers-toggle-multi-mode-key
+
+`default: Space`
+
+Key that toggles multi mode while in **[fingers]** mode. The first press enters
+multi mode, the second press exits it with the selected matches, separated by
+spaces, copied to the clipboard. The value is a tmux key name, as accepted by
+`bind-key`.
+
+For example, to toggle multi mode with <kbd>TAB</kbd>:
+
+```tmux
+set -g @fingers-toggle-multi-mode-key Tab
+set -g @fingers-fzf-key Space
+```
+
+<kbd>TAB</kbd> is bound to `@fingers-fzf-key` by default, and that binding takes
+precedence, so it has to be moved to another key as in the example above.
 
 ## @fingers-cli
 
