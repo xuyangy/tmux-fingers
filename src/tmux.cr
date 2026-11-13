@@ -127,8 +127,13 @@ class Tmux
   end
 
   def initialize(version_string)
-    @sh = Shell.new
     @version = Tmux.tmux_version_to_semver(version_string)
+  end
+
+  # Started on the first #exec, so a Tmux that only runs tmux directly (e.g.
+  # #set_buffer) never spawns a shell.
+  private getter sh : Shell do
+    Shell.new
   end
 
   def list_panes(filters = "", target = nil) : Array(Pane)
@@ -176,17 +181,25 @@ class Tmux
   end
 
   def swap_panes(src_id, dst_id)
+    exec_batch([swap_panes_command(src_id, dst_id)])
+  end
+
+  def swap_panes_command(src_id, dst_id) : Array(String)
     args = ["swap-pane", "-d", "-s", src_id, "-t", dst_id]
 
     if @version >= Tmux.tmux_version_to_semver("3.1")
       args << "-Z"
     end
 
-    exec(args.join(" "))
+    args
   end
 
   def kill_pane(id)
-    exec("kill-pane -t #{id}")
+    exec_batch([kill_pane_command(id)])
+  end
+
+  def kill_pane_command(id) : Array(String)
+    ["kill-pane", "-t", id]
   end
 
   def kill_window(id)
@@ -208,17 +221,35 @@ class Tmux
   end
 
   def set_key_table(table)
-    exec(["set-window-option", "key-table", table].join(' '))
-    exec(["switch-client", "-T", table].join(' '))
+    exec_batch(set_key_table_commands(table))
+  end
+
+  # switch-client comes last: it fails when there is no client, and tmux skips
+  # the commands that follow a failed one in the same call.
+  def set_key_table_commands(table) : Array(Array(String))
+    [
+      ["set-window-option", "key-table", table],
+      ["switch-client", "-T", table],
+    ]
   end
 
   def disable_prefix
-    set_global_option("prefix", "None")
-    set_global_option("prefix2", "None")
+    exec_batch(disable_prefix_commands)
+  end
+
+  def disable_prefix_commands : Array(Array(String))
+    [
+      set_global_option_command("prefix", "None"),
+      set_global_option_command("prefix2", "None"),
+    ]
   end
 
   def set_global_option(name, value)
-    exec(Process.quote(["set-option", "-g", name, value]))
+    exec_batch([set_global_option_command(name, value)])
+  end
+
+  def set_global_option_command(name, value) : Array(String)
+    ["set-option", "-g", name, value]
   end
 
   def get_global_option(name)
@@ -252,13 +283,17 @@ class Tmux
   end
 
   def select_pane(id)
+    exec_batch([select_pane_command(id)])
+  end
+
+  def select_pane_command(id) : Array(String)
     args = ["select-pane", "-t", id]
 
     if @version >= Tmux.tmux_version_to_semver("3.1")
       args << "-Z"
     end
 
-    exec(args.join(' '))
+    args
   end
 
   def zoom_pane(id)
@@ -299,6 +334,15 @@ class Tmux
   end
 
   def exec(cmd)
-    @sh.exec("#{tmux} #{cmd}")
+    sh.exec("#{tmux} #{cmd}")
+  end
+
+  # Runs several tmux commands, each given as its argument list, in a single
+  # tmux invocation. tmux stops at the first command that fails and skips the
+  # rest, so commands that may fail belong at the end.
+  def exec_batch(commands : Array(Array(String)))
+    return "" if commands.empty?
+
+    exec(commands.map { |args| Process.quote(args) }.join(" \\; "))
   end
 end

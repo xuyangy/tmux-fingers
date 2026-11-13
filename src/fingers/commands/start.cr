@@ -97,6 +97,8 @@ module Fingers::Commands
 
       track_tmux_state
 
+      input_socket.listen
+
       show_hints
 
       if Fingers.config.benchmark_mode == "1"
@@ -142,21 +144,6 @@ module Fingers::Commands
       @original_options["prefix2"] = prefix2
     end
 
-    private def restore_options
-      @original_options.each do |option, value|
-        tmux.set_global_option(option, value)
-      end
-    end
-
-    private def restore_last_key_table
-      tmux.set_key_table(@last_key_table)
-    end
-
-    private def restore_last_pane
-      tmux.select_pane(@last_pane_id)
-      select_active_pane
-    end
-
     private def options_to_preserve
       %w[prefix prefix2]
     end
@@ -181,23 +168,28 @@ module Fingers::Commands
         target_pane.pane_height,
       ) if needs_resize?
 
+      # The input socket is already listening, so the key table is switched in
+      # the same tmux call that shows the hints: a hint typed right away is
+      # queued instead of reaching the fingers pane.
+      # Benchmark mode exits right after this, so it leaves the keys alone.
+      enter_fingers_mode = [tmux.swap_panes_command(fingers_window.pane_id, target_pane.pane_id)]
+      unless Fingers.config.benchmark_mode == "1"
+        enter_fingers_mode.concat(tmux.disable_prefix_commands)
+        enter_fingers_mode.concat(tmux.set_key_table_commands("fingers"))
+      end
+
       # Swapping panes with -Z flag causes some issues with rendering panes
       # with tabs or double width characters
       if target_pane.window_zoomed_flag
-        tmux.swap_panes(fingers_window.pane_id, target_pane.pane_id)
+        tmux.exec_batch(enter_fingers_mode)
         view.render
       else
         view.render
-        tmux.swap_panes(fingers_window.pane_id, target_pane.pane_id)
+        tmux.exec_batch(enter_fingers_mode)
       end
     end
 
     private def handle_input
-      input_socket = InputSocket.new
-
-      tmux.disable_prefix
-      tmux.set_key_table "fingers"
-
       input_socket.on_input do |input|
         view.process_input(input)
         break if state.exiting
@@ -225,10 +217,6 @@ module Fingers::Commands
       tmux.display_message("Copied: #{state.result}", 1000) if should_notify?
     end
 
-    private def select_active_pane
-      tmux.select_pane(active_pane.pane_id)
-    end
-
     private def needs_resize?
       pane_width = target_pane.pane_width.to_i
       pane_contents.any? do |line|
@@ -236,13 +224,26 @@ module Fingers::Commands
       end
     end
 
+    # tmux skips the rest of a call after a failed command, so the pane
+    # commands, which fail if a pane is gone, are kept apart from restoring the
+    # key table and prefix. Selecting the last pane, then the active one,
+    # restores both.
     private def teardown
-      tmux.swap_panes(fingers_pane_id, target_pane.pane_id)
-      tmux.kill_pane(fingers_pane_id)
+      restore_panes = [
+        tmux.swap_panes_command(fingers_pane_id, target_pane.pane_id),
+        tmux.kill_pane_command(fingers_pane_id),
+      ]
+      last_pane_id = @last_pane_id
+      restore_panes << tmux.select_pane_command(last_pane_id) if last_pane_id && !last_pane_id.empty?
 
-      restore_last_pane
-      restore_last_key_table
-      restore_options
+      restore_keys = @original_options.map do |option, value|
+        tmux.set_global_option_command(option, value)
+      end
+      restore_keys.concat(tmux.set_key_table_commands(@last_key_table))
+      restore_keys << tmux.select_pane_command(active_pane.pane_id)
+
+      tmux.exec_batch(restore_panes)
+      tmux.exec_batch(restore_keys)
     end
 
     private getter target_pane : Tmux::Pane do
@@ -297,6 +298,10 @@ module Fingers::Commands
         tmux: tmux,
         mode: mode,
       )
+    end
+
+    private getter input_socket : InputSocket do
+      InputSocket.new
     end
 
     private getter tmux : Tmux do

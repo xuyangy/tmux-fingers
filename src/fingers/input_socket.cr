@@ -1,3 +1,4 @@
+require "file_utils"
 require "socket"
 require "./dirs"
 
@@ -9,9 +10,13 @@ module Fingers
       @path = path
     end
 
-    def on_input
-      remove_socket_file
+    # Starts accepting connections. Messages sent before #on_input is called
+    # wait in the socket's backlog.
+    def listen
+      server
+    end
 
+    def on_input
       loop do
         socket = server.accept
         message = socket.gets
@@ -34,11 +39,14 @@ module Fingers
     private getter :path
 
     def server
-      @server ||= UNIXServer.new(path)
+      @server ||= begin
+        remove_socket_file
+        UNIXServer.new(path)
+      end
     end
 
     def remove_socket_file
-      `rm -rf #{path}`
+      FileUtils.rm_rf(path)
     end
   end
 end
